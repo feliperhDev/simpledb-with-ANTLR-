@@ -1,7 +1,10 @@
 package br.udesc.udescdb.model;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 // Generated from SQLite.g4 by ANTLR 4.7.2
 
@@ -17,8 +20,19 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 public class SQLiteBaseListener implements SQLiteListener {
 	
 	private String nomeTabela;
+	
 	List<Coluna> listColunas = new ArrayList<Coluna>();
-	List<String> listValoresInput = new ArrayList<String>();
+	
+	List<String> inputColuna = new ArrayList<String>();
+	List<String> inputColunaTipo = new ArrayList<String>();
+	
+//	Map<String, String> t = new HashMap<String, String>();
+	List<Coluna> c = new ArrayList<Coluna>();
+	int controleInsert = 0;
+	
+	public List<Coluna> getColunasInsert() {
+		return c;
+	}
 	
 	private int comando;
 	
@@ -38,8 +52,12 @@ public class SQLiteBaseListener implements SQLiteListener {
 		return listColunas;
 	}
 	
-	public List<String> getListValoresInput(){
-		return this.listValoresInput;
+	public List<String> getInputColuna(){
+		return this.inputColuna;
+	}
+	
+	public List<String> getInputColunaTipo(){
+		return this.inputColunaTipo;
 	}
 	
 	//metodos utilizados pelo listener para pegar os dados do imput.
@@ -70,30 +88,50 @@ public class SQLiteBaseListener implements SQLiteListener {
 	@Override
 	public void enterTable_name(SQLiteParser.Table_nameContext ctx) {
 		//registra o nome da tabela 
-		this.nomeTabela = ctx.getText();
-		//teste
-		System.out.println("Nome da tabela " + ctx.getText());
+		String nomeTab = ctx.getText();
+		if(nomeTab.length() > 20) {
+			char[] formataTamanhoNome = Arrays.copyOf(nomeTab.toCharArray(), 20);
+			nomeTab = "";
+			for (int i = 0; i < formataTamanhoNome.length; i++) {
+				nomeTab += formataTamanhoNome[i];
+			}
+		}
+		this.nomeTabela = nomeTab;
+
+		System.out.println("Nome da tabela " + nomeTab);
 	}
 	
 	
 	@Override
 	public void enterLiteral_value(SQLiteParser.Literal_valueContext ctx) {
-		listValoresInput.add(ctx.getText());
+		c.get(controleInsert).setValor(ctx.getText());
+		controleInsert++;		
+
 		System.out.println("Literal " + ctx.getText());
 	}
 	
 	@Override
 	public void enterColumn_name(SQLiteParser.Column_nameContext ctx) {
-		Coluna c = new Coluna();
-		c.setNome(ctx.getText());
-		listColunas.add(c);
-		System.out.println("Nome da coluna " + ctx.getText());
+		if(this.comando == 1) {
+			Coluna c = new Coluna();
+			c.setNome(ctx.getText());
+			listColunas.add(c);
+			System.out.println("Nome da coluna " + ctx.getText());
+		}
+		
+		if(this.comando == 2) {
+			Coluna coluna = new Coluna();
+			coluna.setNome(ctx.getText());
+			c.add(coluna);
+//			inputColuna.add(ctx.getText());
+			System.out.println("Nome da coluna " + ctx.getText());
+		}
 	}
 	
 	@Override
 	public void enterType_name(SQLiteParser.Type_nameContext ctx) {
 		Coluna c = listColunas.get(listColunas.size()-1);
-		c.setTipo(ctx.getText());
+		c.setValor(ctx.getText());
 		System.out.println("Tipo da coluna " + ctx.getText());
 	}
 	////////////////////////////////////////////////////////////////////////////

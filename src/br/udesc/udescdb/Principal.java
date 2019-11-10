@@ -9,6 +9,7 @@ import br.udesc.udescdb.view.TelaCrud;
 
 public class Principal {
 	public static void main(String[] args) throws IOException {
+		
 		Scanner sc = new Scanner(System.in);
 		System.out.println("Escolha um nome para o banco de dados: ");
 		String bdNome = "db"; //sc.next(); 

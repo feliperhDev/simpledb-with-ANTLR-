@@ -13,6 +13,7 @@ import javax.swing.JTextField;
 import javax.swing.SpringLayout;
 
 import br.udesc.udescdb.controller.DataBaseController;
+import br.udesc.udescdb.model.Coluna;
 import br.udesc.udescdb.model.SQLiteBaseListener;
 
 public class TelaCrud extends JFrame {
@@ -53,8 +54,10 @@ public class TelaCrud extends JFrame {
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
 //        		String a = "create table tb_carro (ds_modelo char(20), vl_motor float, nr_portas int)";
 //        		String a = "create table tb_moto (ds_modelo char(20), vl_cilindradas float)";
-				String a = "insert into tb_carro (ds_modelo, vl_motor, nr_portas) values ('Gol', 1.0, 4)";
+				String a = "insert into tb_carro (ds_modelo) values ('Corsa')";
+//				String a = "insert into tb_moto (ds_modelo, vl_cilindradas) values ('teste', 300)";
 //        		String a = "select * from xpto";
+				
 				baseListener = db.initListener(a);
 				
 				//CREATE TABLE
@@ -62,30 +65,23 @@ public class TelaCrud extends JFrame {
 					try {
 						db.criaMetaDado();
 					} catch (IOException e) {
-						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
 					db.gravaMetaDado(baseListener.getNomeTabela(), baseListener.getListColunas());
+					
 				}
 				
 				//INSERT INTO
 				if(baseListener.getComando() == 2) {
-					db.inserirNaTabela(baseListener.getNomeTabela(), baseListener.getListValoresInput());
+					//teste
+//					for (Coluna c : baseListener.getColunasInsert()) {
+//						System.out.println(c.getNome() + " - " + c.getValor());
+//						
+//					}
 					
+					db.inserirNaTabela(baseListener.getNomeTabela(), baseListener.getColunasInsert());
 					
-					String resultado = db.retornaRegistroMetaDados(db.lerMetadados(), baseListener.getNomeTabela());
-					System.out.println(resultado);
-					
-//					db.insert(conteudo);
-					
-					//TESTES
-//					String dados = resultado.split(":")[2].split(",")[1]; //float
-//					
-//					String nomeTabela = dados.split(":")[0]; //tb_carro
-//					String a1 = dados.split(":")[1]; //nome,motor,tetoSolar
-//					String a2 = n1.split(",")[2]; //tetoSolar
-//					
-//					System.out.println(dados);
+			
 				}
 				
 				//SELECT * FROM 
