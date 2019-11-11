@@ -22,16 +22,12 @@ public class SQLiteBaseListener implements SQLiteListener {
 	private String nomeTabela;
 	
 	List<Coluna> listColunas = new ArrayList<Coluna>();
-	
-	List<String> inputColuna = new ArrayList<String>();
-	List<String> inputColunaTipo = new ArrayList<String>();
-	
-//	Map<String, String> t = new HashMap<String, String>();
-	List<Coluna> c = new ArrayList<Coluna>();
-	int controleInsert = 0;
+
+	List<Coluna> listInput = new ArrayList<Coluna>();
+	int countInsert = 0;
 	
 	public List<Coluna> getColunasInsert() {
-		return c;
+		return listInput;
 	}
 	
 	private int comando;
@@ -51,15 +47,7 @@ public class SQLiteBaseListener implements SQLiteListener {
 	public List<Coluna> getListColunas() {
 		return listColunas;
 	}
-	
-	public List<String> getInputColuna(){
-		return this.inputColuna;
-	}
-	
-	public List<String> getInputColunaTipo(){
-		return this.inputColunaTipo;
-	}
-	
+		
 	//metodos utilizados pelo listener para pegar os dados do imput.
 	//////////////////////////////////////////////////////////////////////////////
 	@Override
@@ -76,18 +64,19 @@ public class SQLiteBaseListener implements SQLiteListener {
 	
 	@Override
 	public void enterSelect_stmt(SQLiteParser.Select_stmtContext ctx) {
-		this.comando = 3;
+//		this.comando = 3;
 		System.out.println("Comando select");
 	}
 	
 	@Override
 	public void enterSelect_core(SQLiteParser.Select_coreContext ctx) {
+		this.comando = 3;
 		System.out.println("Comando select");
 	}
 
 	@Override
 	public void enterTable_name(SQLiteParser.Table_nameContext ctx) {
-		//registra o nome da tabela 
+		//registra o nome da tabela e já tratata o imput do usuario
 		String nomeTab = ctx.getText();
 		if(nomeTab.length() > 20) {
 			char[] formataTamanhoNome = Arrays.copyOf(nomeTab.toCharArray(), 20);
@@ -101,11 +90,10 @@ public class SQLiteBaseListener implements SQLiteListener {
 		System.out.println("Nome da tabela " + nomeTab);
 	}
 	
-	
 	@Override
 	public void enterLiteral_value(SQLiteParser.Literal_valueContext ctx) {
-		c.get(controleInsert).setValor(ctx.getText());
-		controleInsert++;		
+		listInput.get(countInsert).setValor(ctx.getText());
+		countInsert++;		
 
 		System.out.println("Literal " + ctx.getText());
 	}
@@ -113,16 +101,16 @@ public class SQLiteBaseListener implements SQLiteListener {
 	@Override
 	public void enterColumn_name(SQLiteParser.Column_nameContext ctx) {
 		if(this.comando == 1) {
-			Coluna c = new Coluna();
-			c.setNome(ctx.getText());
-			listColunas.add(c);
+			Coluna listInput = new Coluna();
+			listInput.setNome(ctx.getText());
+			listColunas.add(listInput);
 			System.out.println("Nome da coluna " + ctx.getText());
 		}
 		
 		if(this.comando == 2) {
 			Coluna coluna = new Coluna();
 			coluna.setNome(ctx.getText());
-			c.add(coluna);
+			listInput.add(coluna);
 //			inputColuna.add(ctx.getText());
 			System.out.println("Nome da coluna " + ctx.getText());
 		}
@@ -130,13 +118,13 @@ public class SQLiteBaseListener implements SQLiteListener {
 	
 	@Override
 	public void enterType_name(SQLiteParser.Type_nameContext ctx) {
-		Coluna c = listColunas.get(listColunas.size()-1);
-		c.setValor(ctx.getText());
+		Coluna listInput = listColunas.get(listColunas.size()-1);
+		listInput.setValor(ctx.getText());
 		System.out.println("Tipo da coluna " + ctx.getText());
 	}
+	
+	//Outras atribuições da biblioteca que não foram utilizadas.
 	////////////////////////////////////////////////////////////////////////////
-	
-	
 	
 	/**
 	 * {@inheritDoc}

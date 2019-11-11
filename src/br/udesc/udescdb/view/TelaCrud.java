@@ -53,39 +53,30 @@ public class TelaCrud extends JFrame {
 		jbPlay.addActionListener(new java.awt.event.ActionListener() {
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
 //        		String a = "create table tb_carro (ds_modelo char(20), vl_motor float, nr_portas int)";
-//        		String a = "create table tb_moto (ds_modelo char(20), vl_cilindradas float)";
-				String a = "insert into tb_carro (ds_modelo) values ('Corsa')";
-//				String a = "insert into tb_moto (ds_modelo, vl_cilindradas) values ('teste', 300)";
-//        		String a = "select * from xpto";
+//        		String a = "create table tb_moto (ds_modelo char(20), ds_cor char(10))";
+//				String a = "insert into tb_carro (ds_modelo, vl_motor, nr_portas) values ('Fiat Uno', 1.0, 4)";
+//				String a = "insert into tb_moto (ds_modelo, ds_cor) values ('Biz', 'Azul')";
+        		String a = "select * from tb_carro";
+//        		String a = "select * from tb_moto";
 				
 				baseListener = db.initListener(a);
 				
 				//CREATE TABLE
 				if(baseListener.getComando() == 1) {
-					try {
-						db.criaMetaDado();
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
 					db.gravaMetaDado(baseListener.getNomeTabela(), baseListener.getListColunas());
 					
 				}
 				
 				//INSERT INTO
 				if(baseListener.getComando() == 2) {
-					//teste
-//					for (Coluna c : baseListener.getColunasInsert()) {
-//						System.out.println(c.getNome() + " - " + c.getValor());
-//						
-//					}
-					
 					db.inserirNaTabela(baseListener.getNomeTabela(), baseListener.getColunasInsert());
 					
-			
 				}
 				
 				//SELECT * FROM 
 				if(baseListener.getComando() == 3) {
+					db.listarDaTabela(baseListener.getNomeTabela());
+					
 					
 				}
 

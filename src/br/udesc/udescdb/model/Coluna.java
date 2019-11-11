@@ -8,10 +8,10 @@ public class Coluna {
 		
 	}
 
-	public Coluna(String nome, String tipo) {
+	public Coluna(String nome, String valor) {
 		super();
 		this.nome = nome;
-		this.valor = tipo;
+		this.valor = valor;
 	}
 
 	public String getNome() {
