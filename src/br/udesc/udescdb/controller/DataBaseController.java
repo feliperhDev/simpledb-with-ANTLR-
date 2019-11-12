@@ -1,11 +1,8 @@
 package br.udesc.udescdb.controller;
 
 import java.io.BufferedReader;
-import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -14,18 +11,28 @@ import java.io.PrintWriter;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+
+import javax.xml.XMLConstants;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
+import javax.xml.validation.Validator;
 
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CodePointCharStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
-
-import com.sun.javafx.collections.MappingChange.Map;
-import com.sun.xml.internal.bind.v2.runtime.unmarshaller.XsiNilLoader.Array;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 import br.udesc.udescdb.model.Coluna;
 import br.udesc.udescdb.model.SQLiteBaseListener;
@@ -35,12 +42,16 @@ import br.udesc.udescdb.model.Tabela;
 
 public class DataBaseController {
 
+	private List<Observer> observers = new ArrayList<>();
+
 	/*
 	 * Referencia para o diretorio.
 	 */
 	private String nomeDb;
 	private File tabelaMetaDados;
 	private File tabelaDados;
+
+	private SQLiteBaseListener baseListener;
 
 	private Tabela t;
 
@@ -51,6 +62,14 @@ public class DataBaseController {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+
+	public void attach(Observer obs) {
+		observers.add(obs);
+	}
+
+	public void detach(Observer obs) {
+		observers.remove(obs);
 	}
 
 	public Tabela getTabela() {
@@ -78,6 +97,7 @@ public class DataBaseController {
 		SQLiteBaseListener baseListener = new SQLiteBaseListener();
 		p.walk(baseListener, tree);
 
+		this.baseListener = baseListener;
 		return baseListener;
 	}
 
@@ -307,8 +327,6 @@ public class DataBaseController {
 					}
 					count2++;
 				}
-//				String novaLinha = System.getProperty("line.separator");
-//				out.writeBytes(novaLinha);
 				out.close();
 			} else {
 				System.out.println("A tabela:(" + nomeTabela + ") não foi encontrada.");
@@ -326,7 +344,7 @@ public class DataBaseController {
 		String[] colunasMetadado = dados[1].split(",");
 		String[] colunasValorMetadado = dados[2].split(",");
 
-		t = new Tabela();
+		t = new Tabela(colunasMetadado.length);
 
 		try {
 			if (!metadadoRegistro.isEmpty()) {
@@ -338,14 +356,16 @@ public class DataBaseController {
 				}
 
 				t.setNome(nomeTabela);
+
 				RandomAccessFile ra = new RandomAccessFile(tabelaDados, "r");
-//				DataInputStream in = new DataInputStream(new FileInputStream(tabelaDados));
-				
 
-				int TAMREG = 0; 
-				
-				int count = 0;
+				int TAMREG = 0;
 
+				/*
+				 * Parte do metodo que utilizo para pecorrer meus dados da tabela, e faço a soma
+				 * dos tamanhos conforme o tipo de dado de cada 1 com a logica da soma de +
+				 * 1byte (1 ou 0) que verifica se o campo é null ou não.
+				 */
 				for (String tipoDoValorColuna : colunasValorMetadado) {
 					if (tipoDoValorColuna.equals("int")) {
 						TAMREG += 4 + 1; // + 1byte é referente a um byte que eu gravo se o valor é null(1) ou não(0)
@@ -360,55 +380,76 @@ public class DataBaseController {
 						TAMREG += tamChar + 1;
 					}
 				}
-				t.setTamanho(TAMREG);
 
 				long tamArquivo = tabelaDados.length();
 				long numeroDeRegistros = (tamArquivo / TAMREG);
-				
+				int posicaoArquivo = 0;
 				for (int i = 0; i < numeroDeRegistros; i++) {
-					ra.seek(TAMREG * i);
+					posicaoArquivo = (TAMREG * i);
+					ra.seek(posicaoArquivo);
+
+					t.addLinha(new ArrayList<String>());
+
+					/*
+					 * Parte do metodo em que é feita a leitura do arquivo binario e salvo os dados
+					 * em um Objeto Tabela do sistema.
+					 */
 					for (String tipoVa : colunasValorMetadado) {
+						ra.seek(posicaoArquivo);
+
 						if (tipoVa.equals("int")) {
-							byte verificaValorNull = ra.readByte();
-							if (verificaValorNull == 1) {
-								System.out.println("RETORNO VARIAVEL COM O TEXTO NULL");
-							}else {
-								System.out.println(ra.readInt());
+							if (ra.readByte() == 1) {
+								String valorNull = "null";
+								t.addValoresLinha(i, valorNull);
+							} else {
+								int intValue = ra.readInt();
+								System.out.println(String.valueOf(intValue));
+								t.addValoresLinha(i, String.valueOf(intValue));
 							}
-							
+							posicaoArquivo += 4 + 1;
+
 						} else if (tipoVa.equals("float")) {
-							byte verificaValorNull = ra.readByte();
-							if (verificaValorNull == 1) {
-								System.out.println("RETORNO VARIAVEL COM O TEXTO NULL");
-							}else {
-								String test = String.valueOf(ra.readFloat());
-								System.out.println(test);
+							if (ra.readByte() == 1) {
+								String valorNull = "null";
+								t.addValoresLinha(i, valorNull);
+							} else {
+								String floatValue = String.valueOf(ra.readFloat());
+								t.addValoresLinha(i, floatValue);
 							}
-							
+							posicaoArquivo += (4 + 1);
+
 						} else if (tipoVa.contains("char")) {
 							int tamChar = 0;
 							String split1 = tipoVa.split("\\(")[1];
 							String split2 = split1.split("\\)")[0];
 							tamChar = Integer.parseInt(split2);
-							
-							byte verificaValorNull = ra.readByte();
-							if (verificaValorNull == 1) {
-								System.out.println("RETORNO VARIAVEL COM O TEXTO NULL");
-							}else {
+
+							String result = "";
+							if (ra.readByte() == 1) {
+								result = "null";
+								t.addValoresLinha(i, result);
+
+							} else {
 								byte[] charValor = new byte[tamChar];
 								for (int j = 0; j < charValor.length; j++) {
 									charValor[j] = ra.readByte();
+									result += (char) charValor[j];
 								}
-								for (byte b : charValor) {
-									System.out.print((char)b);
-								}
+								t.addValoresLinha(i, result);
 							}
+							posicaoArquivo += (1 + tamChar);
 						}
 					}
+					posicaoArquivo = 0;
 				}
-				
+
+				t.setColunas(colunasMetadado);
+
+				t.setTamanho(TAMREG);
 
 				ra.close();
+
+				notifyTableChanged();
 
 			} else {
 				System.out.println("A tabela:(" + nomeTabela + ") não foi encontrada.");
@@ -419,4 +460,41 @@ public class DataBaseController {
 		}
 
 	}
+
+	public String getLinhaTabela(int linha, int coluna) {
+		String result = "";
+		result = t.getValorLinha(linha, coluna);
+		return result;
+	}
+
+	public void validaXml(String path) throws SAXException, IOException {
+		SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+		Schema schema = schemaFactory.newSchema(new File("udescdb.xsd"));
+		Validator validator = schema.newValidator();
+		validator.validate(new StreamSource(new File(path)));
+
+	}
+	
+	public void lerXmlFile(String path) throws ParserConfigurationException, SAXException, IOException {
+		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+		dbf.setIgnoringComments(true);
+		dbf.setIgnoringElementContentWhitespace(true);
+
+		DocumentBuilder db = dbf.newDocumentBuilder();
+		Document doc = db.parse(new File(path));
+		
+		Element root = doc.getDocumentElement();
+		NodeList filhos = root.getChildNodes();
+		
+		
+//		inserirNaTabela(nomeTabela, colunasInsert);
+		
+	}
+
+	public void notifyTableChanged() {
+		for (Observer obs : observers) {
+			obs.updateTable();
+		}
+	}
+
 }

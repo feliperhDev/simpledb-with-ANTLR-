@@ -1,0 +1,56 @@
+<?xml version="1.0"?>
+
+<xs:schema version="1.0"
+           xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="http://www.udesc.br"
+           xmlns="http://www.udesc.br"
+           elementFormDefault="qualified">
+    <xs:element name="notebook">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="fabricante" type="xs:string"/>
+                <xs:element name="processador" type="ProcessadorType"/>
+                <xs:element name="memoria" type="MemoriaType"/>
+            </xs:sequence>
+            
+        </xs:complexType>
+    </xs:element>
+    
+    <xs:complexType name="ProcessadorType">
+        <xs:sequence>
+            <xs:element name="marca" type="xs:string"/>
+            
+            <xs:element name="velocidade">
+                <xs:complexType>
+                    <xs:simpleContent>
+                        <xs:extension base="xs:double">
+                            <xs:attribute name="unid" type="DesempenhoType"/>
+                        </xs:extension>
+                    </xs:simpleContent>
+                </xs:complexType>
+            </xs:element>
+            
+        </xs:sequence>
+    </xs:complexType>
+    
+    <xs:complexType name="MemoriaType">
+        <xs:attribute name="capac" type="xs:double"/>
+        <xs:attribute name="unid" type="CapacidadeType"/>
+    </xs:complexType>
+
+    <xs:simpleType name="DesempenhoType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="MHz"/>
+            <xs:enumeration value="GHz"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="CapacidadeType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="MB"/>
+            <xs:enumeration value="GB"/>
+            <xs:enumeration value="TB"/>
+        </xs:restriction>
+    </xs:simpleType>
+                
+</xs:schema>

@@ -1,44 +1,83 @@
 package br.udesc.udescdb.view;
 
 import java.awt.BorderLayout;
+import java.awt.Frame;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.File;
 import java.io.IOException;
 
 import javax.swing.JButton;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JList;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
+import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.SpringLayout;
+import javax.xml.parsers.ParserConfigurationException;
+
+import org.xml.sax.SAXException;
 
 import br.udesc.udescdb.controller.DataBaseController;
-import br.udesc.udescdb.model.Coluna;
+import br.udesc.udescdb.controller.Observer;
 import br.udesc.udescdb.model.SQLiteBaseListener;
 
-public class TelaCrud extends JFrame {
+
+public class TelaCrud extends JFrame implements Observer{
 
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
 
-	private JList<String> jList1;
+	class TabelaModel extends javax.swing.table.AbstractTableModel{
+
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = 1L;
+		
+		@Override
+		public String getColumnName(int column) {
+			return db.getTabela().getNomeColuna(column);
+		}
+		
+		@Override
+		public int getColumnCount() {
+			return db.getTabela().getColunas().length;
+		}
+
+		@Override
+		public int getRowCount() {
+			return db.getTabela().getLinhas().size();
+		}
+
+		@Override
+		public Object getValueAt(int linha, int coluna) {
+			return db.getLinhaTabela(linha, coluna);
+		}
+		
+	}
+	
+	private JTable tabela;
+	private TabelaModel tabelaModel;
 	private JTextField jtfQuery;
 	private JButton jbPlay;
+	private JButton jbXml;
 
 	private DataBaseController db;
-	private SQLiteBaseListener baseListener;
 
-	public TelaCrud() {
+	public TelaCrud(String nomeDb) {
 		setTitle("UDESC-DB");
 		setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
-		setSize(800, 600);
-
-//		setResizable(false);
+		setSize(800, 280);
 		setLocationRelativeTo(null);
 
-		db = new DataBaseController("db");
+		db = new DataBaseController(nomeDb);
+		db.attach(this);
+		tabelaModel = new TabelaModel();
 		initComponents();
 
 	}
@@ -49,17 +88,13 @@ public class TelaCrud extends JFrame {
 		jtfQuery = new JTextField();
 
 		jbPlay = new JButton("Executar");
-		
 		jbPlay.addActionListener(new java.awt.event.ActionListener() {
+			
+
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
-//        		String a = "create table tb_carro (ds_modelo char(20), vl_motor float, nr_portas int)";
-//        		String a = "create table tb_moto (ds_modelo char(20), ds_cor char(10))";
-//				String a = "insert into tb_carro (ds_modelo, vl_motor, nr_portas) values ('Fiat Uno', 1.0, 4)";
-//				String a = "insert into tb_moto (ds_modelo, ds_cor) values ('Biz', 'Azul')";
-        		String a = "select * from tb_carro";
-//        		String a = "select * from tb_moto";
-				
-				baseListener = db.initListener(a);
+        		
+        		SQLiteBaseListener baseListener;
+        		baseListener = db.initListener(jtfQuery.getText());
 				
 				//CREATE TABLE
 				if(baseListener.getComando() == 1) {
@@ -76,16 +111,54 @@ public class TelaCrud extends JFrame {
 				//SELECT * FROM 
 				if(baseListener.getComando() == 3) {
 					db.listarDaTabela(baseListener.getNomeTabela());
-					
-					
+					initTableModel();		
 				}
+      
+        		
 
 			}
 		});
 		
+		jbXml = new JButton("Carregar XML");
+		jbXml.addActionListener(new java.awt.event.ActionListener() {
 		
-		jList1 = new JList<String>();
+			private File xmlFile;
 
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				final JFileChooser xml = new JFileChooser("Carregar XML");		
+				
+				int returnValue = xml.showOpenDialog(null);
+				boolean flag = true;
+				
+				if (returnValue == JFileChooser.APPROVE_OPTION) {
+					xmlFile = xml.getSelectedFile();
+					System.out.println(xmlFile.getAbsolutePath());
+					try { 
+						db.validaXml(xmlFile.getAbsolutePath()); 
+					} catch (SAXException e) {
+						flag = false;
+					} catch (IOException e) {
+						flag = false;
+					}
+					
+					System.out.println("Validado : " + flag);
+					if(flag == true) {
+						try {
+							db.lerXmlFile(xmlFile.getAbsolutePath());
+						} catch (ParserConfigurationException | SAXException | IOException e) {
+							e.printStackTrace();
+						}
+					}else {
+						JOptionPane.showMessageDialog(new Frame(),"Erro ao validar o xsd.");
+					}
+				}
+				
+				
+			}
+		});
+		
+		tabela = new JTable();
+		
 		jPanel1.add(new JLabel("Query: "));
 		jPanel1.add(jtfQuery);
 
@@ -99,12 +172,26 @@ public class TelaCrud extends JFrame {
 		jPanel4.setLayout(new BorderLayout());
 		jPanel4.add(jPanel1, BorderLayout.CENTER);
 		jPanel4.add(jPanel2, BorderLayout.SOUTH);
-
+		
+		JPanel jPanel5 = new JPanel();
+		jPanel5.setLayout(new BorderLayout());
+		jPanel5.add(jbXml,BorderLayout.CENTER);
+		
 		add(jPanel4, BorderLayout.NORTH);
-		add(new JScrollPane(jList1), BorderLayout.CENTER);
+		add(tabela, BorderLayout.CENTER);
+		add(jPanel5, BorderLayout.SOUTH);
 
 //		pack();
+	}
+	
+	private void initTableModel() {
+		tabela.setModel(this.tabelaModel);
+	}
 
 
+	@Override
+	public void updateTable() {
+		tabelaModel.fireTableStructureChanged();
+		
 	}
 }

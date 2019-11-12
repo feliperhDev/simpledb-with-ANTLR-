@@ -6,27 +6,36 @@ import java.util.List;
 public class Tabela {
 	
 	private String nome;
-	private List<String> linhas;
+//	private List<Coluna> colunas;
+	private String[] colunas;
+	
+	private List< List<String> > linhas;
 	private int tamanho;
 	
 	public Tabela() {
-		super();
-		this.linhas = new ArrayList<String>();
+		
 	}
-
-	public Tabela(String nome, List<String> linhas, int tamanho) {
+	
+	public Tabela(int length) {
 		super();
-		this.nome = nome;
-		this.linhas = linhas;
-		this.tamanho = tamanho;
+		this.colunas = new String[length];
+		this.linhas = new ArrayList< List<String> >();
 	}
 
 	public void setNome(String nome) {
 		this.nome = nome;
 	}
-
-	public void addLinha(String l) {
-		this.linhas.add(l);
+	
+	public void setColunas(String[] s) {
+		this.colunas = s; 
+	}
+	
+	public void addLinha(List<String> list) {
+		this.linhas.add(list);
+	}
+	
+	public void addValoresLinha(int index, String valor) {
+		this.linhas.get(index).add(valor);
 	}
 
 	public void setTamanho(int tamanho) {
@@ -36,11 +45,23 @@ public class Tabela {
 	public String getNome() {
 		return nome;
 	}
-
-	public List<String> getLinhas() {
+	
+	public String[] getColunas(){
+		return this.colunas;
+	}
+	
+	public String getNomeColuna(int index) {
+		return this.colunas[index];
+	}
+	
+	public List<List<String>> getLinhas() {
 		return linhas;
 	}
-
+	
+	public String getValorLinha(int indexLinha, int index) {
+		return this.getLinhas().get(indexLinha).get(index);
+	}
+	
 	public int getTamanho() {
 		return tamanho;
 	}
